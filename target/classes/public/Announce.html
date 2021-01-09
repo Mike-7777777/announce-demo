@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SpringBoot Notification Test</title>
+    <link rel="stylesheet" href="bootstrap\css\bootstrap.css">
+</head>
+
+<body>
+
+    <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+        <h1 class="display-4">国电集团</h1>
+        <p class="lead">推送</p>
+    </div>
+
+    <div id="app" class="container">
+        <div class="card-deck mb-3 text-center">
+            <!--SSE-->
+            <div id="case-sse" class="card mb-4 box-shadow">
+                <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">新闻公告</h4>
+                </div>
+                <div class="card-body">
+                    <div v-if="sseSuccessAlertVisibility" class="alert alert-success" role="alert">
+                        正在获取新通知,请稍后...
+                    </div>
+
+                    <div class="input-group mt-3">
+                        <div class="form-control" disabled rows="10">
+                            <a :href="announce.alink" v-for="announce in announces" :key="announce.atitle"
+                                style="display: block">
+                                {{ announce.atitle }}</a>
+                        </div>
+                    </div>
+
+                    <button type="button" class="mt-3 btn btn-lg btn-block btn-outline-primary"
+                        @click="executeGet('sse')">
+                        获取通知
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            name: 'app',
+            data: {
+                message: 'Hello Vue!',
+                username: 'Mike',
+                sseSuccessAlertVisibility: false,
+                wsSuccessAlertVisibility: false,
+                stompSuccessAlertVisibility: false,
+
+                getTime: 0,
+
+                announces: [
+                    { atitle: '', alink: '', atime: '' },
+                ]
+            },
+            methods: {
+                // 添加Announce
+                addAnnounce: function () {
+                    this.announces.push(
+                        { atitle: 'defalut', alink: 'defalut', atime: 'defalut' }
+                    );
+                },
+                executeGet: function () {
+                    var tt = this;
+                    var url = "http://localhost:8080/api/download/";
+
+                    axios.get(url)
+                        .then(function (data) {
+                            if (data.status === 200) {
+                                tt.showSuccessAlertVisibility();
+                                //注册SSE 消息通知服务
+                                tt.registerNotification();
+                            }
+                        }).catch(function (reason) {
+                            console.log(reason)
+                        });
+                },
+
+                showSuccessAlertVisibility: function () {
+                    var tt = this;
+                    tt.sseSuccessAlertVisibility = true;
+                    setTimeout(function () {
+                        tt.sseSuccessAlertVisibility = false;
+                    }, 3000)
+                },
+                registerNotification: function (type) {
+                    var tt = this;
+                    this.sseMsg = '';
+                    this.usesSSENotification();
+                },
+                usesSSENotification: function () {
+                    var tt = this;
+                    var url = "http://localhost:8080/api/sse-notification";
+                    var sseClient = new EventSource(url);
+                    sseClient.onopen = function () {
+                        console.log("Connection to server opened.");
+                    };
+                    sseClient.onmessage = function (msg) {
+                        var jsonStr = msg.data;
+
+                        console.log('message', jsonStr);
+                        var obj = JSON.parse(jsonStr);
+                        //anns读取数据
+                        tt.announces.push(
+                        { atitle: obj.proptitle, alink: obj.proplink, atime: obj.proptime}
+                    );
+                        tt.getTime++;
+                        if (tt.getTime === 7) {
+                            sseClient.close();
+                        }
+                    };
+                    sseClient.onerror = function () {
+                        console.log("EventSource failed.");
+                    };
+                },
+            },
+        })
+    </script>
+
+</body>
+
+</html>
