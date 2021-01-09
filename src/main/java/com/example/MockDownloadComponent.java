@@ -13,16 +13,22 @@ public class MockDownloadComponent {
 
     @Async // 使其异步化
     public void mockDownload(String sessionid) {
-
+        String proplink;
+        String proptitle;
+        String proptime;
+        String content;
         for (int i = 0; i < 10; i++) {
             try {
                 TimeUnit.MILLISECONDS.sleep(200 * i); // 模拟发布耗时
+                if(i==1){
+                    proplink = "./announcement_link_001.html";
+                }else{
+                    proplink = "./announcement_link?id=00" + i;
+                }
+                proptitle = "这是第 " + i + " 个通知的标题";
+                proptime = "1"+i+":59";
 
-                String proplink = "./announcement_link?=00" + i;
-                String proptitle = "这是第 " + i + " 个通知的标题";
-                String proptime = "1"+i+":59";
-
-                String content = String.format(
+                content = String.format(
                         "{\"uid\":\"%s\",\"proplink\":\"%s\",\"proptitle\":\"%s\", \"proptime\":\"%s\"}", sessionid,
                         proplink, proptitle, proptime);
                 log.info("username={}'s post called {} whose url is {} when {}", sessionid, proplink, proptitle,
